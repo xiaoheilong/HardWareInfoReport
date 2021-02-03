@@ -3,8 +3,10 @@
 #include "CurlReportCell.h"
 #include <SystemInfoDll.h>
 #include <string>
+#include <memory>
 using namespace SystemWMISpace;
 namespace HardWareNamespace {
+	extern const wchar_t * g_PingUrl;
 	class HardWareInnerVbox : public HardWareReportInner
 	{
 	public:

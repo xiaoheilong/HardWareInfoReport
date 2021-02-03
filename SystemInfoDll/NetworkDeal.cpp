@@ -266,6 +266,7 @@ namespace Networkspace {
 		int ret = -1;
 		ret = getLocalLanIp(localIp , 50);
 		if (0 != ret || 0 == wcslen(localIp)) {
+			std::cout << "getLocalMacAddress step1" << std::endl;
 			return ret;
 		}
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
@@ -294,15 +295,18 @@ namespace Networkspace {
 						wsprintf(macAddress, _T("%.2X-%.2X-%.2X-%.2X-%.2X-%.2X"), pCurrAddresses->PhysicalAddress[0], pCurrAddresses->PhysicalAddress[1],
 							pCurrAddresses->PhysicalAddress[2], pCurrAddresses->PhysicalAddress[3], pCurrAddresses->PhysicalAddress[4], pCurrAddresses->PhysicalAddress[5]);
 						if (len < wcslen(macAddress)) {
+							std::cout << "getLocalMacAddress step2" << std::endl;
 							return - 1;
 						}
 						wmemcpy(macAdress, macAddress, wcslen(macAddress) + 1);
+						//std::cout << "getLocalMacAddress step3:"<< macAddress<< std::endl;
 						return 0;
 					}
 				}
 				pCurrAddresses = pCurrAddresses->Next;
 			}
 		}
+		std::cout << "getLocalMacAddress step4" << std::endl;
 		return -1;
 	}
 }

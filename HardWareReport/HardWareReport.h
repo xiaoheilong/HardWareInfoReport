@@ -12,8 +12,13 @@
 #endif
 
 #define EXTERN_C_MODEL  extern "C"
+#include <iostream>
 namespace HardWareNamespace {
-
+	std::string WString2String(const std::wstring& ws);
+	enum HardWareReportType {
+		TYPE_HTTP = 0 ,
+		TYPE_WEBSOCKET
+	};
 	class HardWareReportInner {
 	public:
 		HardWareReportInner();
@@ -44,10 +49,11 @@ namespace HardWareNamespace {
 		virtual void  SetReportInterTime(unsigned int time) = 0;  ///per ms   Range[10000 , *]
 		virtual unsigned int GetReportInterTime() = 0;
 		virtual int Run() = 0;
+		virtual int Stop() = 0;
 		virtual int UnInit() = 0;
 	};
 	
-	EXTERN_C_MODEL INSTALL_EXPORT HardWareReport * CreateHardWareReport();
+	EXTERN_C_MODEL INSTALL_EXPORT HardWareReport * CreateHardWareReport(HardWareReportType type);
 	EXTERN_C_MODEL INSTALL_EXPORT void  ReleaseHardWareReport(HardWareReport * report);
 
 }

@@ -3,6 +3,7 @@
 #include "./nvapi/nvapi.h"
 #include "./NetworkDeal.h"
 #include <tlhelp32.h>
+#include <iostream>
 //#include "./network/common/network.h"
 #include<Python.h>
 extern "C"
@@ -263,9 +264,18 @@ namespace SystemWMISpace {
 	}
 
 
-	SystemInfoDll::SystemInfoDll():m_wmiWbemInfo(NULL) , m_mutex(new std::mutex()), m_userName(NULL), m_deviceId(L"")
+	SystemInfoDll::SystemInfoDll():m_wmiWbemInfo(NULL) , m_mutex(new std::mutex()), m_userName(NULL), m_deviceId(L""), m_pModule(NULL)
 	{
-		
+		m_getCpuUsagePercentage = NULL;
+		m_getRamPercentage = NULL;
+		m_getDiskPercentage = NULL;
+		m_getInternetIp = NULL;
+		m_getRegion = NULL;
+		//getRegion = NULL;
+		m_getNetworkOperator = NULL;
+		m_getNetworkUploadSpeed = NULL;
+		m_getNetworkDownloadSpeed = NULL;
+		m_getCpuGuid = NULL;
 	}
 
 
@@ -296,19 +306,85 @@ namespace SystemWMISpace {
 		m_wmiWbemInfo = WMIWBEMINFO::getWMIWBEMINFOInstance();
 		////////python env
 		SetPythonEnv(g_pythonHomePath);
-		Py_Initialize();
+		if (!Py_IsInitialized())
+		{
+			Py_Initialize();
+		}
 		if (!Py_IsInitialized())
 		{
 			return -1;
 		}
-
+		m_pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		if (m_pModule == NULL)
+		{
+			return -1;
+		}
 		PyRun_SimpleString("import sys");
 		PyRun_SimpleString("sys.path.append('./')");
+		PyObject * pModule = NULL;
+		pModule = (PyObject *)(m_pModule);
+		m_getCpuUsagePercentage =PyObject_GetAttrString(pModule, "getCpuPercent");
+		m_getRamPercentage = PyObject_GetAttrString(pModule, "getMemoryPercent");//
+		m_getDiskPercentage = PyObject_GetAttrString(pModule, "getDiskInfo");//;
+		//m_getInternetIp = PyObject_GetAttrString(pModule, "getDiskInfo");
+		m_getRegion = PyObject_GetAttrString(pModule, "getRegion");
+		m_getNetworkOperator = PyObject_GetAttrString(pModule, "getInternetOperator");
+		m_getNetworkUploadSpeed = PyObject_GetAttrString(pModule, "getNetworkDownLoadFlow");
+		m_getNetworkDownloadSpeed = PyObject_GetAttrString(pModule, "getNetworkUpLoadFlow");
+		m_getCpuGuid = PyObject_GetAttrString(pModule, "getCpuProcessorId");
+		//////////
 		return  ret;
 	}
 
 	void SystemInfoDll::unInit() {
-		Py_Finalize(); // 与初始化对应
+		if (Py_IsInitialized())
+		{
+			/////////////////release the function of python scrip
+			PyObject * pModule = (PyObject *)(m_pModule);
+			////////////
+			if (m_getCpuUsagePercentage) {
+				Py_DECREF(m_getCpuUsagePercentage);
+				m_getCpuUsagePercentage = NULL;
+			}
+			if (m_getRamPercentage) {
+				Py_DECREF(m_getRamPercentage);
+				m_getRamPercentage = NULL;
+			}
+			if (m_getDiskPercentage) {
+				Py_DECREF(m_getDiskPercentage);
+				m_getDiskPercentage = NULL;
+			}
+			//m_getInternetIp = PyObject_GetAttrString(pModule, "getDiskInfo");
+			if (m_getRegion) {
+				Py_DECREF(m_getRegion);
+				m_getRegion = NULL;
+			}
+			if (m_getNetworkOperator) {
+				Py_DECREF(m_getNetworkOperator);
+				m_getNetworkOperator = NULL;
+			}
+
+			if (m_getNetworkUploadSpeed) {
+				Py_DECREF(m_getNetworkUploadSpeed);
+				m_getNetworkUploadSpeed = NULL;
+			}
+
+			if (m_getNetworkDownloadSpeed) {
+				Py_DECREF(m_getNetworkDownloadSpeed);
+				m_getNetworkDownloadSpeed = NULL;
+			}
+
+			if (m_getCpuGuid) {
+				Py_DECREF(m_getCpuGuid);
+				m_getCpuGuid = NULL;
+			}
+			////////////
+			if (pModule) {
+				Py_DECREF(pModule);
+				m_pModule = NULL;
+			}
+			Py_Finalize(); // 与初始化对应
+		}
 		if (!m_mutex) {
 			return ;
 		}
@@ -371,100 +447,55 @@ namespace SystemWMISpace {
 		PyObject * pModule = NULL;//声明变量
 		PyObject * getIpInfo = NULL;// 声明变量
 		//PyObject * testFunc = NULL;// 声明变量
-		pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		//pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		//if (pModule == NULL)
+		//{
+		//	return 0.0;
+		//}
+		/*pModule = (PyObject *)(m_pModule);
 		if (pModule == NULL)
 		{
 			return 0.0;
-		}
-		getIpInfo = PyObject_GetAttrString(pModule, "getCpuPercent");//这里是要调用的函数名
+		}*/
+		getIpInfo = (PyObject *)m_getCpuUsagePercentage;// (PyObject *)m_getCpuUsagePercentage;// PyObject_GetAttrString(pModule, "getCpuPercent");//这里是要调用的函数名
 		if (!getIpInfo) {
-			Py_DECREF(pModule);
 			return 0.0;
 		}
 		PyObject* pRet = PyObject_CallObject(getIpInfo, NULL);//调用函数
 		if (!pRet) {
-			Py_DECREF(getIpInfo);
-			Py_DECREF(pModule);
 			return 0.0;
 		}
 		float result = 0.0;
 		PyArg_Parse(pRet, "f", &result);//转换返回类型;
 		Py_DECREF(pRet);
-		Py_DECREF(getIpInfo);
-		Py_DECREF(pModule);
+		//Py_DECREF(getIpInfo);
+		//Py_DECREF(pModule);
 		return result;
 	}
 
 	float SystemInfoDll::getRamPercentage() {
-		//if (!m_wmiWbemInfo) {
-		//	return 0.0;
-		//}
-		//if (!m_wmiWbemInfo) {
-		//	return 0;
-		//}
-		//WMIWBEMINFO *wmiWbemInfo = (WMIWBEMINFO *)(m_wmiWbemInfo);
-		//float totalRam = getRamTotal(wmiWbemInfo);
-		//vector<LPCWSTR> queryAttrs;
-		//queryAttrs.push_back(L"AvailableMBytes");
-		//IEnumWbemClassObject* pEnumerator = executeWQLQuery
-		//(wmiWbemInfo->getHres(),
-		//	wmiWbemInfo->getWbemLocator(),
-		//	wmiWbemInfo->getWbemServices(),
-		//	buildQueryString(L"Win32_PerfFormattedData_PerfOS_Memory", queryAttrs));
-		//IWbemClassObject* pclsObj = NULL;
-		//ULONG uReturn = 0;
-		////if -1, then WMI for some reason didn't get the data from the tables
-		//float avaliableMemory = 0;
-		//while (pEnumerator) {
-		//	HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1,
-		//		&pclsObj, &uReturn);
-
-		//	if (0 == uReturn) {
-		//		int errorCode = GetLastError();
-		//		break;
-		//	}
-
-		//	VARIANT vtProp;
-
-		//	hr = pclsObj->Get(queryAttrs.at(0), 0, &vtProp, 0, 0);
-		//	if (WBEM_S_NO_ERROR != hr) {
-		//		if (pclsObj) {
-		//			VariantClear(&vtProp);
-		//			pclsObj->Release(); pclsObj = NULL;
-		//		}
-		//		throw std::exception("Failed to get info from logic cores table");
-		//		break;
-		//	}
-		//	avaliableMemory = std::stof(vtProp.bstrVal);
-		//	VariantClear(&vtProp);
-		//	pclsObj->Release(); pclsObj = NULL;
-		//}
-		//float percentage = (totalRam - avaliableMemory) / totalRam;
-		//return percentage;
 		PyObject * pModule = NULL;//声明变量
 		PyObject * getIpInfo = NULL;// 声明变量
 		//PyObject * testFunc = NULL;// 声明变量
-		pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		//pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		/*pModule = (PyObject *)(m_pModule);
 		if (pModule == NULL)
 		{
 			return 0.0;
-		}
-		getIpInfo = PyObject_GetAttrString(pModule, "getMemoryPercent");//这里是要调用的函数名
+		}*/
+		getIpInfo = (PyObject *)(m_getRamPercentage);// PyObject_GetAttrString(pModule, "getMemoryPercent");//这里是要调用的函数名
 		if (!getIpInfo) {
-			Py_DECREF(pModule);
 			return 0.0;
 		}
 		PyObject* pRet = PyObject_CallObject(getIpInfo, NULL);//调用函数
 		if (!pRet) {
-			Py_DECREF(getIpInfo);
-			Py_DECREF(pModule);
+			//Py_DECREF(getIpInfo);
 			return 0.0;
 		}
 		float result = 0.0;
 		PyArg_Parse(pRet, "f", &result);//转换返回类型;
 		Py_DECREF(pRet);
-		Py_DECREF(getIpInfo);
-		Py_DECREF(pModule);
+		//Py_DECREF(getIpInfo);
 		return result;
 	}
 
@@ -647,80 +678,28 @@ namespace SystemWMISpace {
 
 
 	float SystemInfoDll::getDiskPercentage() {
-		//if (!m_wmiWbemInfo) {
-		//	return 0;
-		//}
-		//WMIWBEMINFO *wmiWbemInfo = (WMIWBEMINFO *)(m_wmiWbemInfo);
-		//vector<LPCWSTR> queryAttrs;// wmiClassStringsMap.at(L"Win32_DiskDrive");
-		//queryAttrs.push_back(L"DeviceID");
-		//queryAttrs.push_back(L"Size");//Availability
-		////IEnumWbemClassObject* pEnumerator = executeWQLQuery(hres, pLoc, pSvc, buildQueryString(L"Win32_DiskDrive", queryAttrs));
-		//IEnumWbemClassObject* pEnumerator = executeWQLQuery(wmiWbemInfo->getHres(),
-		//	wmiWbemInfo->getWbemLocator(),
-		//	wmiWbemInfo->getWbemServices(),
-		//	buildQueryString(L"Win32_DiskDrive", queryAttrs));
-		//IWbemClassObject* pclsObj = NULL;
-		//ULONG uReturn = 0;
-		//float totalSpace = 0;
-		//float freeSpace = 0;
-		//while (pEnumerator) {
-		//	HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1,
-		//		&pclsObj, &uReturn);
-
-		//	if (0 == uReturn) {
-		//		break;
-		//	}
-
-		//	VARIANT vtProp;
-		//	wstring deviceId;
-		//	wstring capacityStr;
-		//	///deviceID
-		//	hr = pclsObj->Get(L"DeviceID", 0, &vtProp, 0, 0);
-		//	if (vtProp.bstrVal) {
-		//		deviceId = vtProp.bstrVal;
-		//	}
-		//	freeSpace += getFreeSpaceOfDiskByDeviceID(wmiWbemInfo ,deviceId);
-		//	//////////size
-		//	hr = pclsObj->Get(L"Size", 0, &vtProp, 0, 0);
-		//	if (vtProp.bstrVal) {
-		//		capacityStr = vtProp.bstrVal;
-		//		float tempFloat = (float)stof(capacityStr);
-		//		//capacityNew /= (1024 * 1024 * 1024);
-		//		totalSpace += tempFloat;
-		//	}
-		//	////////////////
-		//	VariantClear(&vtProp);
-
-		//	pclsObj->Release();
-		//}
-		//if (pEnumerator) {
-		//	pEnumerator->Release();
-		//}
-		//return (totalSpace - freeSpace) / totalSpace;
 		PyObject * pModule = NULL;//声明变量
 		PyObject * getIpInfo = NULL;// 声明变量
 		//PyObject * testFunc = NULL;// 声明变量
-		pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		//pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		/*pModule = (PyObject *)(m_pModule);
 		if (pModule == NULL)
 		{
 			return 0.0;
-		}
-		getIpInfo = PyObject_GetAttrString(pModule, "getDiskInfo");//这里是要调用的函数名
+		}*/
+		getIpInfo = (PyObject *)m_getDiskPercentage;// PyObject_GetAttrString(pModule, "getDiskInfo");//这里是要调用的函数名
 		if (!getIpInfo) {
-			Py_DECREF(pModule);
 			return 0.0;
 		}
 		PyObject* pRet = PyObject_CallObject(getIpInfo, NULL);//调用函数
 		if (!pRet) {
-			Py_DECREF(getIpInfo);
-			Py_DECREF(pModule);
+			//Py_DECREF(getIpInfo);
 			return 0.0;
 		}
 		float result = 0.0;
 		PyArg_Parse(pRet, "f", &result);//转换返回类型;
 		Py_DECREF(pRet);
-		Py_DECREF(getIpInfo);
-		Py_DECREF(pModule);
+		//Py_DECREF(getIpInfo);
 		return result;
 	}
 
@@ -805,12 +784,7 @@ namespace SystemWMISpace {
 		if (!mac) {
 			return -1;
 		}
-		//wchar_t  result[50];
-		//memset(result, 0, sizeof(result));
 		int ret = Networkspace::getLocalMacAddress(mac,len);
-		/*if (ret == 0) {
-			wmemcpy(mac, result, wcslen(result));
-		}*/
 		return ret;
 	}
 
@@ -853,55 +827,59 @@ namespace SystemWMISpace {
 		PyObject * pModule = NULL;//声明变量
 		PyObject * getIpInfo = NULL;// 声明变量
 		//PyObject * testFunc = NULL;// 声明变量
-		pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
-		if (pModule == NULL)
-		{
-			///std::cout << "没找到getOutterIp.py!" << endl;
-			//Py_Finalize(); // 与初始化对应
-			return -1;
-		}
-		getIpInfo = PyObject_GetAttrString(pModule, "getRegion");//这里是要调用的函数名
+		//pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		//pModule = (PyObject *)(m_pModule);
+		//if (pModule == NULL)
+		//{
+		//	///std::cout << "没找到getOutterIp.py!" << endl;
+		//	//Py_Finalize(); // 与初始化对应
+		//	return -1;
+		//}
+		getIpInfo = (PyObject *)m_getRegion;// PyObject_GetAttrString(pModule, "getRegion");//这里是要调用的函数名
 		//testFunc = PyObject_GetAttrString(pModule, "getTest");
 		wchar_t internetIp[50];
 		memset(internetIp, 0, sizeof(internetIp));
 		int retInter = getInternetIp(internetIp ,50);
 		if (0 != retInter) {
 			//Py_DECREF(testFunc);
-			Py_DECREF(getIpInfo);
-			Py_DECREF(pModule);
+			//Py_DECREF(getIpInfo);
 			//Py_Finalize(); // 与初始化对应
 			return -1;
 		}
 		std::string userIp = ws2s(internetIp);
 		std::string internetIp1 = R"()" + userIp;
-		//PyObject* args = Py_BuildValue("s", internetIp.c_str());//给python函数参数赋值
-		PyObject *pArgs = PyTuple_New(1);//函数调用的参数传递均是以元组的形式打包的,2表示参数个数
-		PyTuple_SetItem(pArgs, 0, Py_BuildValue("s", internetIp1.c_str()));//0--序号,i表示创建int型变量
-
-		PyObject* pRet = PyObject_CallObject(getIpInfo, pArgs);//调用函数
-		//PyObject* pRet1 = PyObject_CallObject(testFunc , NULL);
-		char *result = NULL;
-		//char *result1 = NULL;
-		PyArg_Parse(pRet, "s", &result);//转换返回类型
-		//PyArg_Parse(pRet1, "s", &result1);//转换返回类型
 		std::string str1 = "";
 		std::string str2 = "";
-		if (result) {
-			str1 = result;
-			str2 = UnEscape(str1.c_str());
-		}
+		//PyObject* args = Py_BuildValue("s", inwternetIp.c_str());//给python函数参数赋值
+		try {
+			PyObject *pArgs = PyTuple_New(1);//函数调用的参数传递均是以元组的形式打包的,2表示参数个数
+			PyTuple_SetItem(pArgs, 0, Py_BuildValue("s", internetIp1.c_str()));//0--序号,i表示创建int型变量
+			//经常崩溃在此处
+			PyObject* pRet = PyObject_CallObject(getIpInfo, pArgs);//调用函数
+			//PyObject* pRet1 = PyObject_CallObject(testFunc , NULL);
+			char *result = NULL;
+			//char *result1 = NULL;
+			PyArg_Parse(pRet, "s", &result);//转换返回类型
 
-		//Py_DECREF(pRet1);
-		Py_DECREF(pRet);
-		Py_DECREF(pArgs);
-		//Py_DECREF(testFunc);
-		Py_DECREF(getIpInfo);
-		Py_DECREF(pModule);
-		//Py_Finalize(); // 与初始化对应
-		///////////
-		std::wstring tempStr = s2ws(str2.c_str());
-		if (len < tempStr.size()) {
+			if (result) {
+				str1 = result;
+				//str2 = UnEscape(str1.c_str());
+			}
+			if (pRet) {
+				Py_DECREF(pRet);
+			}
+			if (pArgs) {
+				Py_DECREF(pArgs);
+			}
+		}
+		catch (...) {
+			std::cout << "getRegion is failure! error:"<< GetLastError() << std::endl;
 			return -1;
+		}
+		///////////
+		std::wstring tempStr = s2ws(str1.c_str());
+		if (len < tempStr.size()) {
+			return 0;
 		}
 		if (!tempStr.empty()) {
 			wmemcpy(region, tempStr.c_str(), wcslen(tempStr.c_str()));
@@ -931,46 +909,59 @@ namespace SystemWMISpace {
 			PyObject * pModule = NULL;//声明变量
 			PyObject * getIpInfo = NULL;// 声明变量
 			//PyObject * testFunc = NULL;// 声明变量
-			pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
-			if (pModule == NULL)
-			{
-				///std::cout << "没找到getOutterIp.py!" << endl;
-				//Py_Finalize(); // 与初始化对应
-				return -1;
-			}
-			getIpInfo = PyObject_GetAttrString(pModule, "getInternetOperator");//这里是要调用的函数名
+			//pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+			//pModule = (PyObject *)(m_pModule);
+			//if (pModule == NULL)
+			//{
+			//	///std::cout << "没找到getOutterIp.py!" << endl;
+			//	//Py_Finalize(); // 与初始化对应
+			//	return -1;
+			//}
+			getIpInfo = (PyObject *)m_getNetworkOperator;// PyObject_GetAttrString(pModule, "getInternetOperator");//这里是要调用的函数名
 			//testFunc = PyObject_GetAttrString(pModule, "getTest");
 			wchar_t internetIp[50];
 			memset(internetIp, 0, sizeof(internetIp));
 			int retInter = getInternetIp(internetIp, 50);
 			if (0 != retInter) {
 				//Py_DECREF(testFunc);
-				Py_DECREF(getIpInfo);
-				Py_DECREF(pModule);
+				if (getIpInfo) {
+					//Py_DECREF(getIpInfo);
+				}
 				//Py_Finalize(); // 与初始化对应
 				return -1;
 			}
 			std::string userIp = ws2s(internetIp);
 			std::string internetIp1 = R"()" + userIp;
-			//PyObject* args = Py_BuildValue("s", internetIp.c_str());//给python函数参数赋值
-			PyObject *pArgs = PyTuple_New(1);//函数调用的参数传递均是以元组的形式打包的,2表示参数个数
-			PyTuple_SetItem(pArgs, 0, Py_BuildValue("s", internetIp1.c_str()));//0--序号,i表示创建int型变量
-
-			PyObject* pRet = PyObject_CallObject(getIpInfo, pArgs);//调用函数
-			char *result = NULL;
-			PyArg_Parse(pRet, "s", &result);//转换返回类型
 			std::string str1 = "";
-			if (result)
-			{
-				str1 = result;
-			}
+			//PyObject* args = Py_BuildValue("s", internetIp.c_str());//给python函数参数赋值
+			try {
+				PyObject *pArgs = PyTuple_New(1);//函数调用的参数传递均是以元组的形式打包的,2表示参数个数
+				PyTuple_SetItem(pArgs, 0, Py_BuildValue("s", internetIp1.c_str()));//0--序号,i表示创建int型变量
 
-			//Py_DECREF(pRet1);
-			Py_DECREF(pRet);
-			Py_DECREF(pArgs);
+				PyObject* pRet = PyObject_CallObject(getIpInfo, pArgs);//调用函数
+				char *result = NULL;
+				PyArg_Parse(pRet, "s", &result);//转换返回类型
+				if (result)
+				{
+					str1 = result;
+				}
+
+				//Py_DECREF(pRet1);
+				if (pRet) {
+					Py_DECREF(pRet);
+				}
+				if (pArgs) {
+					Py_DECREF(pArgs);
+				}
+			}
+			catch (...) {
+				std::cout << "getNetworkOperator is failure!error="<<GetLastError() << std::endl;
+				return -1;
+			}
 			//Py_DECREF(testFunc);
-			Py_DECREF(getIpInfo);
-			Py_DECREF(pModule);
+			/*if (getIpInfo) {
+				Py_DECREF(getIpInfo);
+			}*/
 			//Py_Finalize(); // 与初始化对应
 			/////
 			std::wstring  tempStr = s2ws(str1.c_str());
@@ -1008,14 +999,15 @@ namespace SystemWMISpace {
 		PyObject * pModule = NULL;//声明变量
 		PyObject * getIpInfo = NULL;// 声明变量
 		//PyObject * testFunc = NULL;// 声明变量
-		pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
-		if (pModule == NULL)
-		{
-			///std::cout << "没找到getOutterIp.py!" << endl;
-			//Py_Finalize(); // 与初始化对应
-			return -1;
-		}
-		getIpInfo = PyObject_GetAttrString(pModule, "getNetworkDownLoadFlow");//这里是要调用的函数名
+		//pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		//pModule = (PyObject *)(m_pModule);
+		//if (pModule == NULL)
+		//{
+		//	///std::cout << "没找到getOutterIp.py!" << endl;
+		//	//Py_Finalize(); // 与初始化对应
+		//	return -1;
+		//}
+		getIpInfo = (PyObject *)m_getNetworkUploadSpeed;// PyObject_GetAttrString(pModule, "getNetworkDownLoadFlow");//这里是要调用的函数名
 		//testFunc = PyObject_GetAttrString(pModule, "getTest");
 		//PyObject* args = Py_BuildValue("s", internetIp.c_str());//给python函数参数赋值
 		//PyObject *pArgs = PyTuple_New(1);//函数调用的参数传递均是以元组的形式打包的,2表示参数个数
@@ -1029,11 +1021,14 @@ namespace SystemWMISpace {
 			str1 = result;
 		}
 		//Py_DECREF(pRet1);
-		Py_DECREF(pRet);
+		if (pRet) {
+			Py_DECREF(pRet);
+		}
 		//Py_DECREF(pArgs);
 		//Py_DECREF(testFunc);
-		Py_DECREF(getIpInfo);
-		Py_DECREF(pModule);
+		/*if (getIpInfo) {
+			Py_DECREF(getIpInfo);
+		}*/
 		//Py_Finalize(); // 与初始化对应
 		/////
 		std::wstring  tempStr = s2ws(str1.c_str());
@@ -1070,14 +1065,15 @@ namespace SystemWMISpace {
 		PyObject * pModule = NULL;//声明变量
 		PyObject * getIpInfo = NULL;// 声明变量
 		//PyObject * testFunc = NULL;// 声明变量
-		pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
-		if (pModule == NULL)
-		{
-			///std::cout << "没找到getOutterIp.py!" << endl;
-			//Py_Finalize(); // 与初始化对应
-			return -1;
-		}
-		getIpInfo = PyObject_GetAttrString(pModule, "getNetworkUpLoadFlow");//这里是要调用的函数名
+		//pModule = PyImport_ImportModule("getOutterIp");//这里是要调用的文件名hello.py
+		//pModule = (PyObject *)(m_pModule);
+		//if (pModule == NULL)
+		//{
+		//	///std::cout << "没找到getOutterIp.py!" << endl;
+		//	//Py_Finalize(); // 与初始化对应
+		//	return -1;
+		//}
+		getIpInfo = (PyObject *)m_getNetworkDownloadSpeed;// PyObject_GetAttrString(pModule, "getNetworkUpLoadFlow");//这里是要调用的函数名
 		//testFunc = PyObject_GetAttrString(pModule, "getTest");
 		//PyObject* args = Py_BuildValue("s", internetIp.c_str());//给python函数参数赋值
 		//PyObject *pArgs = PyTuple_New(1);//函数调用的参数传递均是以元组的形式打包的,2表示参数个数
@@ -1092,11 +1088,14 @@ namespace SystemWMISpace {
 		}
 
 		//Py_DECREF(pRet1);
-		Py_DECREF(pRet);
+		if (pRet) {
+			Py_DECREF(pRet);
+		}
 		//Py_DECREF(pArgs);
 		//Py_DECREF(testFunc);
-		Py_DECREF(getIpInfo);
-		Py_DECREF(pModule);
+		/*if (getIpInfo) {
+			Py_DECREF(getIpInfo);
+		}*/
 		//Py_Finalize(); // 与初始化对应
 		/////
 		std::wstring  tempStr = s2ws(str1.c_str());
@@ -1105,6 +1104,42 @@ namespace SystemWMISpace {
 		}
 		if (!tempStr.empty()) {
 			wmemcpy(speed, tempStr.c_str(), wcslen(tempStr.c_str()));
+			return 0;
+		}
+		else {
+			return -1;
+		}
+
+		return 0;
+	}
+
+
+	int SystemInfoDll::getCpuGuid(wchar_t * content, unsigned int len) {
+		if (!content) {
+			return -1;
+		}
+		PyObject * getIpInfo = NULL;// 声明变量
+		getIpInfo = (PyObject *)(m_getCpuGuid);
+		if (!getIpInfo) {
+			return -1;
+		}
+		PyObject* pRet = PyObject_CallObject(getIpInfo, NULL);//调用函数
+		char *result = NULL;
+		PyArg_Parse(pRet, "s", &result);//转换返回类型
+		std::string str1 = "";
+		if (result) {
+			str1 = result;
+		}
+		if (pRet) {
+			Py_DECREF(pRet);
+		}
+		
+		std::wstring  tempStr = s2ws(str1.c_str());
+		if (len < tempStr.size()) {
+			return -1;
+		}
+		if (!tempStr.empty()) {
+			wmemcpy(content, tempStr.c_str(), wcslen(tempStr.c_str()));
 			return 0;
 		}
 		else {

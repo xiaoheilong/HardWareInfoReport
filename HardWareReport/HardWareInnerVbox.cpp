@@ -5,11 +5,13 @@
 #include <json/writer.h>
 #include <iostream>
 namespace HardWareNamespace {
-	const wchar_t * g_PingUrl = L"baidu.com";
 
-
+	extern const wchar_t * g_PingUrl = L"baidu.com";
 	std::string WString2String(const std::wstring& ws)
 	{
+		if (!ws.size()) {
+			return "";
+		}
 		std::string strLocale = setlocale(LC_ALL, "");
 		const wchar_t* wchSrc = ws.c_str();
 		size_t nDestSize = wcstombs(NULL, wchSrc, 0) + 1;
@@ -35,7 +37,7 @@ namespace HardWareNamespace {
 
 
 	int HardWareInnerVbox::Init() {
-
+		Uninit();
 		m_systemInfo = std::make_shared<SystemInfoDll>();
 		if (m_systemInfo) {
 			m_systemInfo->init();
@@ -45,8 +47,12 @@ namespace HardWareNamespace {
 	}
 
 	int HardWareInnerVbox::Uninit() {
-		if (m_systemInfo) {
+		if (m_systemInfo.get()) {
 			m_systemInfo->unInit();
+		}
+
+		if (m_curlReport.get()) {
+			m_curlReport.reset();
 		}
 		return 0;
 	}

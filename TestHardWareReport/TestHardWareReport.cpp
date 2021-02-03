@@ -4,13 +4,15 @@
 #include "pch.h"
 #include <iostream>
 #include "./HardWareReport.h"
+#include <Windows.h>
 int main()
 {
     std::cout << "Hello World!\n"; 
-	HardWareNamespace::HardWareReport * report = HardWareNamespace::CreateHardWareReport();
+	HardWareNamespace::HardWareReport * report = HardWareNamespace::CreateHardWareReport(HardWareNamespace::HardWareReportType::TYPE_WEBSOCKET);
 	if (report) {
-		const wchar_t * reportUrl = L"http://test.ndxvs.com/sportapi/device/api";
-		report->Init(const_cast<wchar_t *>(reportUrl) ,10000);
+		//const wchar_t * reportUrl = L"http://test.ndxvs.com/sportapi/device/api";
+		const wchar_t * reportUrl = L"ws://socket1.cccsaas.com:9093";
+		report->Init(const_cast<wchar_t *>(reportUrl) ,20000);
 		report->SetBindUser(L"15574674692");
 		//report->SetReportInterTime(3000);
 		report->Run();

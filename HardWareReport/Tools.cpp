@@ -19,7 +19,7 @@
 #pragma comment(lib,"Iphlpapi.lib")
 
 namespace HardWareNamespace {
-	const wchar_t * API_SIGN_KEY = L"YuQ1StIRE0MBVrQg7wcYQjgC2wRlLmAQ1ZofF8S2XKWMv0ZS587lnXZeW9bA1QFo9veTBswC2nAnrMoBUec30mxuWCF0A2h3dOwDcRLjfVrTri73ynYn3gSLBedDSn0S";
+	extern const wchar_t * API_SIGN_KEY = L"CGW1uQ1StIRE0MBVrQg7wcYQjgC2wRlLmAQ1ZofF8S2XKWMv0ZS587lnXZeW9bA1QFo9veTBswC2nAnrMoBUec30mxuWCF0A2h3dOwDcRLjfVrTri73ynYn3gSLBedDSn0S";
 	int JugeUrlIsValid(std::wstring url) {
 
 		return 0;
@@ -49,7 +49,7 @@ namespace HardWareNamespace {
 		std::wstring randomString = std::to_wstring(GetRandomString());
 		std::wstring seedWStr = std::to_wstring(timeStamp) + API_SIGN_KEY + randomString;
 		std::string seedStr = WsToS(seedWStr.c_str());
-		std::string md5Str = MD5NameSpace::md5(seedStr);
+		std::string md5Str = MD5NameSpace::md5sum6(seedStr);
 		return md5Str/*SToWs(md5Str)*/;
 	}
 

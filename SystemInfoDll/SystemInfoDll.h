@@ -34,6 +34,7 @@ namespace SystemWMISpace {
 		int getNetworkOperator(wchar_t * operator1, unsigned int len);//网络运营商
 		int getNetworkUploadSpeed(wchar_t * speed, unsigned int len);//网络上传速度
 		int getNetworkDownloadSpeed(wchar_t * speed, unsigned int len);//网络上传速度
+		int getCpuGuid(wchar_t * content , unsigned int len);//获取cpu序列号
 		int setBindUser(const wchar_t * user);
 		const wchar_t *  getBindUser();//绑定用户
 		int isRunningGame(wchar_t * game);//是否运行游戏  1 运行  0 没有运行
@@ -42,6 +43,17 @@ namespace SystemWMISpace {
 		void * m_mutex;
 		wchar_t * m_userName;
 		std::wstring m_deviceId;
+		void * m_pModule;
+		void * m_getCpuUsagePercentage;
+		void * m_getRamPercentage;
+		void * m_getDiskPercentage;
+		void * m_getInternetIp;
+		void * m_getRegion;
+		//void * getRegion;
+		void * m_getNetworkOperator;
+		void * m_getNetworkUploadSpeed;
+		void * m_getNetworkDownloadSpeed;
+		void * m_getCpuGuid;
 
 	};
 }

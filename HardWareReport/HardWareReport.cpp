@@ -22,8 +22,8 @@ namespace HardWareNamespace {
 	}
 	//////////
 
-	HardWareReport * CreateHardWareReport() {
-		return new HardWareReportVBox();
+	HardWareReport * CreateHardWareReport(HardWareReportType type) {
+		return new HardWareReportVBox(type);
 	}
 
 	void  ReleaseHardWareReport(HardWareReport * report) {

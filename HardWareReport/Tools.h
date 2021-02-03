@@ -1,6 +1,7 @@
 #pragma once
 #include<string>
 namespace HardWareNamespace {
+	extern const wchar_t * API_SIGN_KEY;
 	int JugeUrlIsValid(std::wstring url);
 	int JugeJsonIsValid(std::wstring jsonStr);
 	long long GetTimeStamp();
