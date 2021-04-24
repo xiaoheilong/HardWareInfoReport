@@ -308,7 +308,7 @@ namespace HardWareNamespace {
 			//////mac 地址
 			valueTemp.clear();
 			valueTemp = GetDeviceMac();
-			bodyValue["macAddress"] = valueTemp.c_str();
+			bodyValue["mac"] = valueTemp.c_str();
 			////// 地区
 			valueTemp.clear();
 			valueTemp = GetRegion();
@@ -331,7 +331,13 @@ namespace HardWareNamespace {
 			bodyValue["networkSpeed"] = valueTemp.c_str();
 			/////网络延迟
 			bodyValue["networkLatency"] = GetNetDelay(const_cast<wchar_t *>(g_PingUrl));
+			///////版本上报
+			valueTemp.clear();
+			valueTemp = "1.0.0.18";
+			bodyValue["noteVersion"] = valueTemp.c_str();
+			///////
 			root["data"] = bodyValue;
+			//////////
 			Json::StreamWriterBuilder styled_write;
 			styled_write.settings_["indentation"] = "";
 			styled_write.settings_["precision"] = 16;
@@ -448,7 +454,7 @@ namespace HardWareNamespace {
 			memset(str, 0, strSize);
 			m_systemInfo->getRegion(str, strSize);
 
-			std::string strS = WString2String(std::wstring(str));
+			std::string strS =  WString2String(std::wstring(str));
 			//std::cout << "getRegion:" << strS.c_str() << std::endl;
 			return strS;
 		}

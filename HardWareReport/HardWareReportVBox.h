@@ -21,6 +21,7 @@ namespace HardWareNamespace {
 		virtual void  SetReportInterTime(unsigned int time);
 		virtual unsigned int GetReportInterTime();
 		virtual std::shared_ptr<HardWareReportVBox> GetThis();
+		virtual bool IsValid();
 	protected:
 		virtual int SetCell(std::shared_ptr<HardWareReportInner> cell);
 	private:

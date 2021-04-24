@@ -47,8 +47,10 @@ namespace HardWareNamespace {
 
 	HardWareReportVBox::~HardWareReportVBox()
 	{
+		std::cout << "start close HardWareReportVBox!" << std::endl;
 		m_reportCell.reset();
 		m_reportUrl = L"";
+		std::cout << "end close HardWareReportVBox!" << std::endl;
 	}
 
 
@@ -121,9 +123,19 @@ namespace HardWareNamespace {
 			NSSleep(m_reportInterTime);
 			if (m_reportUrl.size() && m_threadFlag) {
 				std::cout << "report status------------------------------" << std::flush<<std::endl;
-				m_reportCell->Report(const_cast<wchar_t *>(m_reportUrl.c_str()));
+				if (m_reportCell.get()) {
+					m_reportCell->Report(const_cast<wchar_t *>(m_reportUrl.c_str()));
+				}
+				else {
+					m_threadFlag = false;
+					break;
+				}
 			}
 		}
+	}
+
+	bool HardWareReportVBox::IsValid() {
+		return m_reportCell.get();
 	}
 
 	int HardWareReportVBox::Run() {

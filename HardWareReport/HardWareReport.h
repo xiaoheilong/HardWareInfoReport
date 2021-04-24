@@ -51,6 +51,7 @@ namespace HardWareNamespace {
 		virtual int Run() = 0;
 		virtual int Stop() = 0;
 		virtual int UnInit() = 0;
+		virtual bool IsValid() = 0;//juge the model is valid
 	};
 	
 	EXTERN_C_MODEL INSTALL_EXPORT HardWareReport * CreateHardWareReport(HardWareReportType type);

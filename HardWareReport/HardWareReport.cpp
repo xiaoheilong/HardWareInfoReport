@@ -28,6 +28,7 @@ namespace HardWareNamespace {
 
 	void  ReleaseHardWareReport(HardWareReport * report) {
 		if (report) {
+			HardWareReportVBox * cell = (HardWareReportVBox *)report;
 			delete report;
 			report = NULL;
 		}

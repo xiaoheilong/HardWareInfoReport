@@ -326,7 +326,6 @@ namespace SystemWMISpace {
 		m_getCpuUsagePercentage =PyObject_GetAttrString(pModule, "getCpuPercent");
 		m_getRamPercentage = PyObject_GetAttrString(pModule, "getMemoryPercent");//
 		m_getDiskPercentage = PyObject_GetAttrString(pModule, "getDiskInfo");//;
-		//m_getInternetIp = PyObject_GetAttrString(pModule, "getDiskInfo");
 		m_getRegion = PyObject_GetAttrString(pModule, "getRegion");
 		m_getNetworkOperator = PyObject_GetAttrString(pModule, "getInternetOperator");
 		m_getNetworkUploadSpeed = PyObject_GetAttrString(pModule, "getNetworkDownLoadFlow");
@@ -383,7 +382,12 @@ namespace SystemWMISpace {
 				Py_DECREF(pModule);
 				m_pModule = NULL;
 			}
-			Py_Finalize(); // 与初始化对应
+			try {
+				Py_Finalize(); // 与初始化对应
+			}
+			catch (...) {
+				std::cout << "Py_Finalize has a exception!" << std::endl;
+			}
 		}
 		if (!m_mutex) {
 			return ;
@@ -851,18 +855,20 @@ namespace SystemWMISpace {
 		std::string str1 = "";
 		std::string str2 = "";
 		//PyObject* args = Py_BuildValue("s", inwternetIp.c_str());//给python函数参数赋值
+		wchar_t *result = NULL;
 		try {
 			PyObject *pArgs = PyTuple_New(1);//函数调用的参数传递均是以元组的形式打包的,2表示参数个数
 			PyTuple_SetItem(pArgs, 0, Py_BuildValue("s", internetIp1.c_str()));//0--序号,i表示创建int型变量
 			//经常崩溃在此处
 			PyObject* pRet = PyObject_CallObject(getIpInfo, pArgs);//调用函数
 			//PyObject* pRet1 = PyObject_CallObject(testFunc , NULL);
-			char *result = NULL;
 			//char *result1 = NULL;
-			PyArg_Parse(pRet, "s", &result);//转换返回类型
-
+			PyArg_Parse(pRet, "u", &result);//转换返回类型
+			//PyObject* bytes = PyUnicode_AsUTF8String(result);
+			//Py_DECREF(bytes);
 			if (result) {
-				str1 = result;
+				//str1 = result;
+				//std::cout << "this is test region" << result << std::endl;
 				//str2 = UnEscape(str1.c_str());
 			}
 			if (pRet) {
@@ -876,8 +882,11 @@ namespace SystemWMISpace {
 			std::cout << "getRegion is failure! error:"<< GetLastError() << std::endl;
 			return -1;
 		}
+		if (!result) {
+			return -1;
+		}
 		///////////
-		std::wstring tempStr = s2ws(str1.c_str());
+		std::wstring tempStr = result;// s2ws(str1.c_str());
 		if (len < tempStr.size()) {
 			return 0;
 		}
@@ -933,17 +942,18 @@ namespace SystemWMISpace {
 			std::string userIp = ws2s(internetIp);
 			std::string internetIp1 = R"()" + userIp;
 			std::string str1 = "";
+			wchar_t *result = NULL;
 			//PyObject* args = Py_BuildValue("s", internetIp.c_str());//给python函数参数赋值
 			try {
 				PyObject *pArgs = PyTuple_New(1);//函数调用的参数传递均是以元组的形式打包的,2表示参数个数
 				PyTuple_SetItem(pArgs, 0, Py_BuildValue("s", internetIp1.c_str()));//0--序号,i表示创建int型变量
 
 				PyObject* pRet = PyObject_CallObject(getIpInfo, pArgs);//调用函数
-				char *result = NULL;
-				PyArg_Parse(pRet, "s", &result);//转换返回类型
+				
+				PyArg_Parse(pRet, "u", &result);//转换返回类型
 				if (result)
 				{
-					str1 = result;
+					//str1 = result;
 				}
 
 				//Py_DECREF(pRet1);
@@ -964,7 +974,10 @@ namespace SystemWMISpace {
 			}*/
 			//Py_Finalize(); // 与初始化对应
 			/////
-			std::wstring  tempStr = s2ws(str1.c_str());
+			if (!result) {
+				return -1;
+			}
+			std::wstring  tempStr = result;// s2ws(str1.c_str());
 			if (len < tempStr.size()) {
 				return 0;
 			}
